@@ -7,11 +7,11 @@ This module has four functions for a game.
 
 There is a purchasing items function, a random monster generator function,
 a greeting function, and a function to print off a menu board with a list
-of items. The 'random' python module is the only dependency.
+of items. The 'random' and 'time'python modules are the only dependencies.
 '''
 
 import random # Needed for the random monster function
-
+import time # Needed for text print timing
 # Purchasing items function
 def purchase_item(itemPrice,startingMoney,quantityToPurchase=1):
     '''
@@ -30,8 +30,8 @@ def purchase_item(itemPrice,startingMoney,quantityToPurchase=1):
     quantityToPurchase = int(quantityToPurchase)
     if startingMoney < (itemPrice * quantityToPurchase):
         quantityToPurchase = int((startingMoney // itemPrice))
-    return quantityToPurchase,\
-    f'{(startingMoney - (quantityToPurchase *itemPrice)):.2f}'
+    cash = round(startingMoney - (quantityToPurchase * itemPrice),2)
+    return quantityToPurchase, cash
 
 
 # Random Monster Function
@@ -74,9 +74,9 @@ one? \nEither way, best be careful when you are fishing..."
     monster = {
         "name": names[choice],
         "description": descriptions[choice],
-        "health": healths[choice],
-        "power": powers[choice],
-        "money": moneys[choice]
+        "health": (healths[choice]),
+        "power": (powers[choice]),
+        "money": (moneys[choice])
         }
     return monster
 
@@ -122,6 +122,268 @@ def print_shop_menu(item1Name,item1Price,item2Name,item2Price):
     print(('|'),(f'{item2Name:<12}'),(f'{item2Price:>8}'),('|'))
     print("-"*25)
 
+# Main Game Menu
+def menu(cash, power, health):
+    '''
+    A function that prints the game's main menu options.
+
+    Parameters:
+        cash: player's current balence
+        power: player's power
+        health: player's health
+
+    Returns:
+        choice: the player's selection (string)
+    '''
+    print("What would you like to do?\
+    \n 1 - Search for monsters\
+    \n 2 - Buy my wares\
+    \n 3 - Check stats\
+    \n 4 - Exit")
+    choice = (input ("Enter your choice: "))
+    return choice
+
+def statcheck(cash, power, health):
+    '''
+    A function to print monster/player stats.
+
+    Parameters:
+        cash: character's balence
+        power: character's power
+        health: character's health
+
+    Returns:
+        none
+    '''
+    print(f"Cash: ${cash}")
+    print(f"Power: {power}")
+    print(f"Health: {health}")
+    time.sleep(2)
+
+def fightmenu(cash, power, health, monster):
+    '''
+    A function displaying monster fight options.
+
+    Parameters:
+        cash: player's balence
+        power: player's power
+        health: player's health
+        monster: monster stats
+
+    Returns:
+        monsterhealth: the monster's health after the move
+        choice: player's selection in the menu
+    '''
+    powervar = (power + monster["health"])/2
+    print("Your stats:")
+    statcheck(cash, power, health)
+    print(f"{monster["name"]}'s stats:")
+    statcheck(monster["money"], monster["power"], monster["health"])
+    print(f"What is your next move?\
+    \n 1 - Criss-cross ({int(powervar/4)} damange)\
+    \n 2 - The worm ({int(powervar/3)} damage)\
+    \n 3 - Headspin ({int(powervar/2)} damage)\
+    \n 4 - Leave dance battle")
+    choice = (input("Enter your choice: "))
+    while choice != "4":
+        if choice == "1":
+            damage = int(powervar/4)
+            print(f"You did {damage} damage with the criss-cross!")
+            break
+        elif choice == "2":
+            damage = int(powervar/3)
+            print(f"You did {damage} damage with the worm!")
+            break
+        elif choice == "3":
+            damage = int(powervar/2)
+            print(f"You did {damage} damage with the headspin!")
+            break
+        elif ( choice.isnumeric() == False) or (int(choice) > 3):
+            print("Invalid input, try again.")
+        choice = (input("Enter your choice: "))
+    if int(choice) == 4:
+        menu(cash, power, health)
+    time.sleep(2)
+    monsterhealth = monster["health"] - damage
+    #FIXME - unsure how to resolve possibly unbound error, will solve soon
+    return monsterhealth, choice
+
+def monstermove(power, health, monster):
+    '''
+    A function for the monster to deal damage.
+
+    Parameters:
+        power: player's power
+        health: player's health
+        monster: monster stats
+
+    Returns:
+        health: player's health after damage
+    '''
+    powervar = monster["power"] + health
+    damage = int(powervar/random.randrange(5,8))
+    print(f"{monster["name"]} did {damage} damage with their cool moves!")
+    time.sleep(2)
+    health = health - damage
+    return health
+
+def monsterwin(cash, power, health, monster):
+    '''
+    A function for if the player wins the battle.
+
+    Parameters:
+        cash: player's cash
+        power: player's power
+        health: player's health
+        monster: monster stats
+
+    Returns:
+        cash: player's cash (plus cash earned from battle)
+        power: player's power (plus power gained from battle)
+        health: player's health after battle
+    '''
+    print("You expertly boogie and take your winnings!")
+    time.sleep(2)
+    cash = cash + monster["money"]
+    power = power + ((monster["power"] + power)/4)
+    time.sleep(1)
+    statcheck(cash,power,health)
+    return cash, power, health
+
+def monsterlose(cash, power, health, monster):
+    '''
+    A function for if the player loses the battle.
+
+    Parameters:
+        cash: player's cash
+        power: player's power
+        health: player's health
+        monster: monster stats
+
+    Returns:
+      none, ends game if battle lost
+
+    '''
+    print(f"{monster["name"]}'s moves were too cool! You lost :(")
+    print(f"Game over!")
+    time.sleep(2)
+
+def fightloop(cash,power,health,monster):
+    '''
+    A loop function for the dance battle, ends when either character loses
+
+    Parameters:
+        cash: player's cash
+        power: player's power
+        health: player's health
+        monster: monster stats
+
+    Returns:
+        cash: player's cash
+        power: player's power
+        health: player's health
+        monster["health"]: monster's health
+    '''
+    while (health > 0) and (monster["health"] > 0):
+        monster["health"], choice = fightmenu(cash, power, health, monster)
+        health = monstermove(power, health, monster)
+        if int(choice) == 4:
+            break
+        if (int(choice) > 4) or choice.isnumeric()== False:
+            invalid(fightmenu(cash, power, health, monster))
+    if monster["health"] <= 0:
+        cash, power, health = monsterwin(cash, power, health, monster)
+    if health <= 0:
+        monsterlose(cash, power, health, monster)
+    return cash, power, health, monster["health"]
+
+def findmonster(cash, power, health):
+    '''
+    A function for finding a monster to battle
+
+    Parameters:
+        cash: player's cash
+        power: player's power
+        health: player's health
+        monster: monster stats
+
+    Returns:
+        cash: player's cash
+        power: player's power
+        health: player's health
+    '''
+    print("You venture into the forest in search of a monster...")
+    time.sleep(1)
+    monster = new_random_monster()
+    print(f"You found {monster["name"]}!")
+    time.sleep(2)
+    print(monster["description"])
+    statcheck(monster["money"], monster["power"], monster["health"])
+    time.sleep(3)
+    choice2 = input(f"Would you like to beat {monster["name"]} \
+in a dance battle? \n 1 - yes \n 2 - no \n enter: ")
+    while choice2 != "2":
+        if choice2 == "1":
+            cash, power, health, monster["health"]\
+            = fightloop(cash, power, health, monster)
+            break
+        elif (choice2.isnumeric() == False) or (int(choice2) > 2):
+            print("Invalid input, please try again.")
+            time.sleep(1)
+            choice2 = input(f"Would you like to beat {monster["name"]} \
+in a dance battle? \n 1 - yes \n 2 - no \n enter: ")
+    if choice2 == "2":
+        print("Nevermind...")
+        menu(cash, power, health)
+    return cash, power, health
+
+def shopping(cash, power, health):
+    '''
+    A function for shopping in the shop.
+
+    Parameters:
+        cash: player's cash
+        power: player's power
+        health: player's health
+
+    Returns:
+        cash: player's cash
+    '''
+    print_shop_menu("disco ball", 250, "lava lamp", 500)
+    choice3 = input("What would you like to purchase? \n 1 - \
+disco ball \n 2 - lava lamp \n 3 - never mind \nenter: ")
+    while choice3 != "3":
+        if choice3 == "1":
+            total,cash = purchase_item(300,cash,int(input("How many? \
+                Enter number: ")))
+            print(f"You were able to buy {total} and you have {cash} left.")
+            time.sleep(2)
+            break
+        elif int(choice3) == "2":
+            total, cash = purchase_item(500,cash,int(input("How many?\
+                enter number: ")))
+            print(f"You were able to buy {total} and you have {cash} left.")
+            time.sleep(2)
+            break
+        elif (choice3.isnumeric() == False) or (int(choice3) > 3):
+            invalid(shopping(cash, power, health))
+    if choice3 == "3":
+        menu(cash, power, health)
+    return cash
+
+def invalid(menu_func):
+    '''
+    A function for invalid inputs in menus.
+
+    Parameters:
+        menu_func: function for a menu to be reprinted
+
+    Returns:
+        menu_func: function for a menu to be reprinted
+    '''
+    print("Invalid input, try again")
+    time.sleep(2)
+    return menu_func
 
 # Examples
 def test_functions():
@@ -152,6 +414,8 @@ def test_functions():
     print(monster3["health"])
     print(monster3["power"])
     print(monster3["money"])
+
+
 
     # print_welcome function test
     print_welcome("Olive")
