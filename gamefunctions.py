@@ -143,7 +143,7 @@ def menu(cash, power, health):
     choice = (input ("Enter your choice: "))
     return choice
 
-def statcheck(cash, power, health):
+def statcheck(cash, power, health, equipped, discoballs, lavalamps):
     '''
     A function to print monster/player stats.
 
@@ -151,6 +151,9 @@ def statcheck(cash, power, health):
         cash: character's balence
         power: character's power
         health: character's health
+        equipped: items a player has equipped
+        discoballs: number of discoballs in inventory
+        lavalamps: number of lavalamps in inventory
 
     Returns:
         none
@@ -158,9 +161,73 @@ def statcheck(cash, power, health):
     print(f"Cash: ${cash}")
     print(f"Power: {power}")
     print(f"Health: {health}")
+    print(f"Disco balls: {discoballs}")
+    print(f"Lava lamps: {lavalamps}")
+    print(f"Items equipped: {equipped}")
     time.sleep(2)
 
-def fightmenu(cash, power, health, monster):
+def equipItem(equipped, discoballs, lavalamps):
+    '''
+    A function to equip items.
+
+    Parameters:
+        equipped: items a player has equipped
+        discoballs: number of discoballs
+        lavalamps: number of lavalamps
+
+    Returns:
+        equipped: items a player has equipped
+        discoballs: number of discoballs
+        lavalamps: number of lavalamps
+    '''
+    if equipped != "No items equipped":
+        print(f"{equipped} is already equipped!")
+    if (discoballs == 0) and (lavalamps == 0):
+        print("You don't have anything to equip!")
+    else:
+        print("What would you like to equip?")
+        print(f"You have {discoballs} disco balls and {lavalamps}\
+ lava lamps.")
+        if discoballs <= 0:
+            choice = int(input( "1 - lava lamp (+50 health))"))
+            while (choice.isnumeric() == False) or (int(choice) != 1):
+                print("Invalid input, try again.")
+                choice = (input("Enter your choice: "))
+            equipped = "lava lamp"
+            lavalamps = lavalamps + 1
+            print(f"Equipped: {equipped}")
+            print("+50 health!")
+        elif lavalamps <= 0:
+            choice =  int(input("1 - disco ball (+25 power for 1\
+ battle)"))
+            while (choice.isnumeric() == False) or (int(choice) != 1):
+                print("Invalid input, try again.")
+                choice = (input("Enter your choice: "))
+            equipped = "disco ball"
+            discoballs = discoballs - 1
+            print(f"Equipped: {equipped}")
+            print("+25 power for this battle!")
+        else:
+            choice = int(input("1 - disco ball (+25 power for 1 battle)\
+\n2 - lava lamp (+25 health for 1 battle)"))
+            while (choice.isnumeric() == False) or \
+((int(choice) != 1) and (int(choice)) !=2):
+                print("Invalid input, try again.")
+                choice = (input("Enter your choice: "))
+            if choice == 1:
+                equipped = "disco ball"
+                discoballs = discoballs - 1
+                print(f"Equipped: {equipped}")
+                print("+25 power for this battle!")
+            if choice == 2:
+                equipped = "lava lamp"
+                lavalamps = lavalamps - 1
+                print(f"Equipped: {equipped}")
+                print("+50 health!")
+    return (equipped, discoballs, lavalamps)
+
+def fightmenu(cash, power, health, monster, equipped, discoballs,\
+ lavalamps):
     '''
     A function displaying monster fight options.
 
@@ -169,6 +236,9 @@ def fightmenu(cash, power, health, monster):
         power: player's power
         health: player's health
         monster: monster stats
+        equipped: items player has equipped
+        discoballs: number of disco balls a player has
+        lavalamps: number of lava lamps a player has
 
     Returns:
         monsterhealth: the monster's health after the move
@@ -176,16 +246,18 @@ def fightmenu(cash, power, health, monster):
     '''
     powervar = (power + monster["health"])/2
     print("Your stats:")
-    statcheck(cash, power, health)
+    statcheck(cash, power, health, equipped, discoballs, lavalamps)
     print(f"{monster["name"]}'s stats:")
-    statcheck(monster["money"], monster["power"], monster["health"])
+    statcheck(monster["money"], monster["power"], monster["health"], \
+        f"{monster["name"]} has no items equipped", 0, 0)
     print(f"What is your next move?\
     \n 1 - Criss-cross ({int(powervar/4)} damange)\
     \n 2 - The worm ({int(powervar/3)} damage)\
     \n 3 - Headspin ({int(powervar/2)} damage)\
-    \n 4 - Leave dance battle")
+    \n 4 - Equip item from inventory\
+    \n 5 - Leave dance battle")
     choice = (input("Enter your choice: "))
-    while choice != "4":
+    while choice != "5":
         if choice == "1":
             damage = int(powervar/4)
             print(f"You did {damage} damage with the criss-cross!")
@@ -198,10 +270,12 @@ def fightmenu(cash, power, health, monster):
             damage = int(powervar/2)
             print(f"You did {damage} damage with the headspin!")
             break
+        elif choice == "4":
+            equipItem(equipped, discoballs, lavalamps)
         elif ( choice.isnumeric() == False) or (int(choice) > 3):
             print("Invalid input, try again.")
         choice = (input("Enter your choice: "))
-    if int(choice) == 4:
+    if int(choice) == 5:
         menu(cash, power, health)
     time.sleep(2)
     monsterhealth = monster["health"] - damage
@@ -227,7 +301,8 @@ def monstermove(power, health, monster):
     health = health - damage
     return health
 
-def monsterwin(cash, power, health, monster):
+def monsterwin(cash, power, health, monster, equipped, discoballs,\
+ lavalamps):
     '''
     A function for if the player wins the battle.
 
@@ -236,6 +311,9 @@ def monsterwin(cash, power, health, monster):
         power: player's power
         health: player's health
         monster: monster stats
+        equipped: items equipped by player
+        discoballs: number of disco balls a player has
+        lavalamps: number of lava lamps a player has
 
     Returns:
         cash: player's cash (plus cash earned from battle)
@@ -243,14 +321,15 @@ def monsterwin(cash, power, health, monster):
         health: player's health after battle
     '''
     print("You expertly boogie and take your winnings!")
+    equipped = "No items equipped"
     time.sleep(2)
     cash = cash + monster["money"]
     power = power + ((monster["power"] + power)/4)
     time.sleep(1)
-    statcheck(cash,power,health)
+    statcheck(cash,power,health,equipped,discoballs,lavalamps)
     return cash, power, health
 
-def monsterlose(cash, power, health, monster):
+def monsterlose(cash, power, health, monster, equipped):
     '''
     A function for if the player loses the battle.
 
@@ -259,16 +338,19 @@ def monsterlose(cash, power, health, monster):
         power: player's power
         health: player's health
         monster: monster stats
+        equipped: items a player has equipped
 
     Returns:
-      none, ends game if battle lost
-
+        equipped: items a player has equipped
     '''
+    equipped = "No items equipped"
     print(f"{monster["name"]}'s moves were too cool! You lost :(")
     print(f"Game over!")
     time.sleep(2)
+    return equipped
 
-def fightloop(cash,power,health,monster):
+
+def fightloop(cash,power,health,monster, equipped, discoballs, lavalamps):
     '''
     A loop function for the dance battle, ends when either character loses
 
@@ -277,27 +359,41 @@ def fightloop(cash,power,health,monster):
         power: player's power
         health: player's health
         monster: monster stats
+        equipped: items a player has equipped
+        discoballs: number of disco balls a player has
+        lavalamps: number of lava lamps a player has
 
     Returns:
         cash: player's cash
         power: player's power
         health: player's health
         monster["health"]: monster's health
+        equipped: items a player has equipped
+        discoballs: number of disco balls a player has
+        lavalamps: number of lava lamps a player has
     '''
     while (health > 0) and (monster["health"] > 0):
-        monster["health"], choice = fightmenu(cash, power, health, monster)
+        monster["health"], choice = fightmenu(cash, power, health,\
+ monster, equipped, discoballs, lavalamps)
+        if equipped == "lava lamp":
+            health = health + 50
+            equipped = "No items equipped"
+        if equipped == "disco ball":
+            power = power + 25
         health = monstermove(power, health, monster)
         if int(choice) == 4:
             break
         if (int(choice) > 4) or choice.isnumeric()== False:
-            invalid(fightmenu(cash, power, health, monster))
+            invalid(fightmenu(cash, power, health, monster, equipped,\
+ discoballs, lavalamps))
     if monster["health"] <= 0:
-        cash, power, health = monsterwin(cash, power, health, monster)
+        cash, power, health = monsterwin(cash, power, health,\
+ monster, equipped, discoballs, lavalamps)
     if health <= 0:
-        monsterlose(cash, power, health, monster)
-    return cash, power, health, monster["health"]
+        monsterlose(cash, power, health, monster, equipped)
+    return cash, power, health, monster["health"], equipped, discoballs, lavalamps
 
-def findmonster(cash, power, health):
+def findmonster(cash, power, health, equipped, discoballs, lavalamps):
     '''
     A function for finding a monster to battle
 
@@ -306,6 +402,9 @@ def findmonster(cash, power, health):
         power: player's power
         health: player's health
         monster: monster stats
+        equipped: items a player has equipped
+        discoballs: number of disco balls a player has
+        lavalamps: number of lava lamps a player has
 
     Returns:
         cash: player's cash
@@ -318,14 +417,16 @@ def findmonster(cash, power, health):
     print(f"You found {monster["name"]}!")
     time.sleep(2)
     print(monster["description"])
-    statcheck(monster["money"], monster["power"], monster["health"])
+    statcheck(monster["money"], monster["power"], monster["health"],\
+ f"{monster["name"]} has no items equipped", 0, 0)
     time.sleep(3)
     choice2 = input(f"Would you like to beat {monster["name"]} \
 in a dance battle? \n 1 - yes \n 2 - no \n enter: ")
     while choice2 != "2":
         if choice2 == "1":
-            cash, power, health, monster["health"]\
-            = fightloop(cash, power, health, monster)
+            cash, power, health, monster["health"], equipped,\
+            discoballs, lavalamps = fightloop(cash, power, health,\
+ monster, equipped, discoballs, lavalamps)
             break
         elif (choice2.isnumeric() == False) or (int(choice2) > 2):
             print("Invalid input, please try again.")
@@ -335,9 +436,9 @@ in a dance battle? \n 1 - yes \n 2 - no \n enter: ")
     if choice2 == "2":
         print("Nevermind...")
         menu(cash, power, health)
-    return cash, power, health
+    return cash, power, health, equipped, discoballs, lavalamps
 
-def shopping(cash, power, health):
+def shopping(cash, power, health, discoballs, lavalamps):
     '''
     A function for shopping in the shop.
 
@@ -345,18 +446,25 @@ def shopping(cash, power, health):
         cash: player's cash
         power: player's power
         health: player's health
+        discoballs: number of discoballs
+        lavalamps: number of lavalamps
 
     Returns:
         cash: player's cash
+        discoballs: number of discoballs
+        lavalamps: number of lavalamps
     '''
     print_shop_menu("disco ball", 250, "lava lamp", 500)
     choice3 = input("What would you like to purchase? \n 1 - \
-disco ball \n 2 - lava lamp \n 3 - never mind \nenter: ")
+disco ball: +25 power, effective for 1 battle \n 2 - lava lamp: +50 \
+health \n 3 - never mind \nenter: ")
     while choice3 != "3":
         if choice3 == "1":
             total,cash = purchase_item(300,cash,int(input("How many? \
                 Enter number: ")))
-            print(f"You were able to buy {total} and you have {cash} left.")
+            print(f"You were able to buy {total} and you have {cash}\
+ left.")
+            discoballs = discoballs + total
             time.sleep(2)
             break
         elif int(choice3) == "2":
@@ -364,12 +472,13 @@ disco ball \n 2 - lava lamp \n 3 - never mind \nenter: ")
                 enter number: ")))
             print(f"You were able to buy {total} and you have {cash} left.")
             time.sleep(2)
+            lavalamps = lavalamps + total
             break
         elif (choice3.isnumeric() == False) or (int(choice3) > 3):
-            invalid(shopping(cash, power, health))
+            invalid(shopping(cash,power,health,discoballs,lavalamps))
     if choice3 == "3":
         menu(cash, power, health)
-    return cash
+    return cash, discoballs, lavalamps
 
 def invalid(menu_func):
     '''
