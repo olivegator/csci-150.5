@@ -3,15 +3,17 @@
 #2/17/25
 
 '''
-This module has four functions for a game.
+This module has several functions for a game.
 
 There is a purchasing items function, a random monster generator function,
 a greeting function, and a function to print off a menu board with a list
-of items. The 'random' and 'time'python modules are the only dependencies.
+of items, among others.
 '''
 
 import random # Needed for the random monster function
 import time # Needed for text print timing
+import json # Needed for loading files
+
 # Purchasing items function
 def purchase_item(itemPrice,startingMoney,quantityToPurchase=1):
     '''
@@ -32,7 +34,6 @@ def purchase_item(itemPrice,startingMoney,quantityToPurchase=1):
         quantityToPurchase = int((startingMoney // itemPrice))
     cash = round(startingMoney - (quantityToPurchase * itemPrice),2)
     return quantityToPurchase, cash
-
 
 # Random Monster Function
 def new_random_monster():
@@ -80,8 +81,6 @@ one? \nEither way, best be careful when you are fishing..."
         }
     return monster
 
-
-
 # Welcome
 def print_welcome(name,width=20):
     '''
@@ -97,7 +96,6 @@ def print_welcome(name,width=20):
     '''
     welcome = (f"Hello, {name}!")
     print(f"{welcome:^{width}}")
-
 
 # Menu Shop
 def print_shop_menu(item1Name,item1Price,item2Name,item2Price):
@@ -139,10 +137,31 @@ def menu(cash, power, health):
     \n 1 - Search for monsters\
     \n 2 - Buy my wares\
     \n 3 - Check stats\
-    \n 4 - Exit")
+    \n 4 - Save and exit\
+    \n 5 - Exit without saving")
     choice = (input ("Enter your choice: "))
     return choice
 
+# Saving game data function
+def savegame(cash, power, health, discoballs, lavalamps):
+    gamedata = {"Cash": cash, "Power": power, "Health":health,
+        "Discoballs":discoballs, "Lava Lamps":lavalamps}
+    savefile = "savefile.json"
+    with open(savefile, 'w') as file:
+        json.dump(gamedata, file)
+
+# Loading game from file
+def loadgame(filename = "savefile.json"):
+    with open(filename, 'r') as savefile:
+        gamedict = json.load(savefile)
+        cash = gamedict["Cash"]
+        power = gamedict["Power"]
+        health = gamedict["Health"]
+        discoballs = gamedict["Discoballs"]
+        lavalamps = gamedict["Lava Lamps"]
+    return cash, power, health, discoballs, lavalamps
+
+# Prints stats of player and monsters
 def statcheck(cash, power, health, equipped, discoballs, lavalamps):
     '''
     A function to print monster/player stats.
@@ -166,6 +185,7 @@ def statcheck(cash, power, health, equipped, discoballs, lavalamps):
     print(f"Items equipped: {equipped}")
     time.sleep(2)
 
+# Equip an item
 def equipItem(equipped, discoballs, lavalamps):
     '''
     A function to equip items.
@@ -226,6 +246,7 @@ def equipItem(equipped, discoballs, lavalamps):
                 print("+50 health!")
     return (equipped, discoballs, lavalamps)
 
+# The menu for fighting
 def fightmenu(cash, power, health, monster, equipped, discoballs,\
  lavalamps):
     '''
@@ -282,6 +303,7 @@ def fightmenu(cash, power, health, monster, equipped, discoballs,\
     #FIXME - unsure how to resolve possibly unbound error, will solve soon
     return monsterhealth, choice
 
+# Function for the monster's turn
 def monstermove(power, health, monster):
     '''
     A function for the monster to deal damage.
@@ -301,6 +323,7 @@ def monstermove(power, health, monster):
     health = health - damage
     return health
 
+# Funtion for when the player wins the fight
 def monsterwin(cash, power, health, monster, equipped, discoballs,\
  lavalamps):
     '''
@@ -329,6 +352,7 @@ def monsterwin(cash, power, health, monster, equipped, discoballs,\
     statcheck(cash,power,health,equipped,discoballs,lavalamps)
     return cash, power, health
 
+# Function for when the player loses the fight
 def monsterlose(cash, power, health, monster, equipped):
     '''
     A function for if the player loses the battle.
@@ -349,7 +373,7 @@ def monsterlose(cash, power, health, monster, equipped):
     time.sleep(2)
     return equipped
 
-
+# Main fight funtion
 def fightloop(cash,power,health,monster, equipped, discoballs, lavalamps):
     '''
     A loop function for the dance battle, ends when either character loses
@@ -393,6 +417,7 @@ def fightloop(cash,power,health,monster, equipped, discoballs, lavalamps):
         monsterlose(cash, power, health, monster, equipped)
     return cash, power, health, monster["health"], equipped, discoballs, lavalamps
 
+# Discovering a monster
 def findmonster(cash, power, health, equipped, discoballs, lavalamps):
     '''
     A function for finding a monster to battle
@@ -438,6 +463,7 @@ in a dance battle? \n 1 - yes \n 2 - no \n enter: ")
         menu(cash, power, health)
     return cash, power, health, equipped, discoballs, lavalamps
 
+# Shopping function
 def shopping(cash, power, health, discoballs, lavalamps):
     '''
     A function for shopping in the shop.
@@ -480,6 +506,7 @@ health \n 3 - never mind \nenter: ")
         menu(cash, power, health)
     return cash, discoballs, lavalamps
 
+# Function for when a player selects an invalid option
 def invalid(menu_func):
     '''
     A function for invalid inputs in menus.
