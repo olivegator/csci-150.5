@@ -144,6 +144,19 @@ def menu(cash, power, health):
 
 # Saving game data function
 def savegame(cash, power, health, discoballs, lavalamps):
+    '''
+    A function to save game data in a json file to load later.
+
+    Parameters:
+        cash: amount of money the player has
+        power: player's power level
+        health: player's health
+        discoballs: number of discoballs the player has
+        lavalamps: number of lavalamps the player has
+
+    Returns:
+        nothing, writes data as a dictionary into a json file
+    '''
     gamedata = {"Cash": cash, "Power": power, "Health":health,
         "Discoballs":discoballs, "Lava Lamps":lavalamps}
     savefile = "savefile.json"
@@ -152,6 +165,19 @@ def savegame(cash, power, health, discoballs, lavalamps):
 
 # Loading game from file
 def loadgame(filename = "savefile.json"):
+    '''
+    A function to load a game's data back from a json file.
+
+    Parameters:
+        filename: file name to load, default is savefile.json
+
+    Returns:
+        cash: amount of money the player has
+        power: player's power level
+        health: player's health
+        discoballs: number of discoballs the player has
+        lavalamps: number of lavalamps the player has
+    '''
     with open(filename, 'r') as savefile:
         gamedict = json.load(savefile)
         cash = gamedict["Cash"]
