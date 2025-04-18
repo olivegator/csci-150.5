@@ -12,7 +12,12 @@ of items, among others.
 
 import random # Needed for the random monster function
 import time # Needed for text print timing
-import json # Needed for loading files
+import json
+#from typing import _P # Needed for loading files
+import pygame # Needed for graphics
+import os # Needed for saving position
+
+
 
 # Purchasing items function
 def purchase_item(itemPrice,startingMoney,quantityToPurchase=1):
@@ -137,34 +142,28 @@ def menu(cash, power, health):
     \n 1 - Search for monsters\
     \n 2 - Buy my wares\
     \n 3 - Check stats\
-    \n 4 - Save and exit\
-    \n 5 - Exit without saving")
+    \n 4 - Venture into the forest\
+    \n 5 - Save and exit")
     choice = (input ("Enter your choice: "))
     return choice
 
 # Saving game data function
-def savegame(cash, power, health, discoballs, lavalamps):
+def savegame(gamedata):
     '''
     A function to save game data in a json file to load later.
 
     Parameters:
-        cash: amount of money the player has
-        power: player's power level
-        health: player's health
-        discoballs: number of discoballs the player has
-        lavalamps: number of lavalamps the player has
+        gamedata: A dictionary with game variables to save
 
     Returns:
         nothing, writes data as a dictionary into a json file
     '''
-    gamedata = {"Cash": cash, "Power": power, "Health":health,
-        "Discoballs":discoballs, "Lava Lamps":lavalamps}
     savefile = "savefile.json"
     with open(savefile, 'w') as file:
         json.dump(gamedata, file)
 
 # Loading game from file
-def loadgame(filename = "savefile.json"):
+def loadgame(filename = "savefile.json",):
     '''
     A function to load a game's data back from a json file.
 
@@ -172,21 +171,33 @@ def loadgame(filename = "savefile.json"):
         filename: file name to load, default is savefile.json
 
     Returns:
+        name: players name
         cash: amount of money the player has
         power: player's power level
         health: player's health
         discoballs: number of discoballs the player has
         lavalamps: number of lavalamps the player has
+        x: x value on map
+        y: y value on map
     '''
-    with open(filename, 'r') as savefile:
-        gamedict = json.load(savefile)
-        cash = gamedict["Cash"]
-        power = gamedict["Power"]
-        health = gamedict["Health"]
-        discoballs = gamedict["Discoballs"]
-        lavalamps = gamedict["Lava Lamps"]
-    return cash, power, health, discoballs, lavalamps
-
+    if os.path.exists(filename):
+        with open(filename, 'r') as savefile:
+            gamedict = json.load(savefile)
+            cash = gamedict["Cash"]
+            power = gamedict["Power"]
+            health = gamedict["Health"]
+            discoballs = gamedict["Discoballs"]
+            lavalamps = gamedict["Lava Lamps"]
+            name = gamedict["Name"]
+            x = gamedict["x"]
+            y = gamedict ["y"]
+            time.sleep(1)
+            print("Game loaded!")
+            return name, cash, power, health, discoballs, lavalamps, x, y
+    else:
+        time.sleep(1)
+        print("No games to load!")
+        return "", 0, 100, 500, 0, 0, 85, 232
 # Prints stats of player and monsters
 def statcheck(cash, power, health, equipped, discoballs, lavalamps):
     '''
@@ -293,10 +304,10 @@ def fightmenu(cash, power, health, monster, equipped, discoballs,\
     '''
     powervar = (power + monster["health"])/2
     print("Your stats:")
-    statcheck(cash, power, health, equipped, discoballs, lavalamps)
+    print(f"  Power: {power}\n Health: {health}\n Equipped: {equipped}")
     print(f"{monster["name"]}'s stats:")
-    statcheck(monster["money"], monster["power"], monster["health"], \
-        f"{monster["name"]} has no items equipped", 0, 0)
+    print(f"  Power: {monster["power"]}, Health: {monster["health"]}")
+
     print(f"What is your next move?\
     \n 1 - Criss-cross ({int(powervar/4)} damange)\
     \n 2 - The worm ({int(powervar/3)} damage)\
@@ -546,6 +557,92 @@ def invalid(menu_func):
     print("Invalid input, try again")
     time.sleep(2)
     return menu_func
+
+#Pygame
+def gamewindow(gamedata):
+    winwidth = 320
+    winheight = 320
+    if os.path.exists("savefile.json"):
+           with open("savefile.json", "r") as file:
+               gamedict = json.load(file)
+               x = gamedict["x"]
+               y = gamedict["y"]
+    else:
+        x = 85
+        y = 232
+    player = pygame.Rect(x,y,32,32)
+    town = pygame.Rect(50,200,100,100)
+    monster = pygame.Rect(200, 50, 32, 32)
+    speed = 1
+    option = 0
+    pygame.init()
+    screen = pygame.display.set_mode((winwidth, winheight))
+
+    starttown = True
+    running = True
+    while running:
+        # quitting
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+
+        # stop lagging / graphics issues
+        pygame.display.update()
+        time.sleep(.01)
+
+        # controls
+        key = pygame.key.get_pressed()
+        if key[pygame.K_UP]:
+            player.move_ip(0, -speed)
+        elif key[pygame.K_DOWN]:
+            player.move_ip(0, speed)
+        elif key[pygame.K_LEFT]:
+            player.move_ip(-speed, 0)
+        elif key[pygame.K_RIGHT]:
+            player.move_ip(speed, 0)
+
+        # Bounderies
+        if player.left < 0:
+            player.left = 0
+        if player.top < 0:
+            player.top = 0
+        if player.right > winwidth:
+            player.right = winwidth
+        if player.bottom > winheight:
+            player.bottom = winheight
+
+
+        entertown = player.colliderect(town)
+        if (entertown == False) and (starttown == True):
+            starttown = False
+        if (entertown == True) and (starttown == False):
+            option = 0
+            running = False
+
+        monsterfight = player.colliderect(monster)
+        if monsterfight == True:
+            player.x = monster.x - 40
+            player.y = monster.y - 40
+            option = 1
+            running = False
+
+        # Drawing
+        screen.fill((0,102,51))
+        pygame.draw.rect(screen, (76,153,0), town)
+        pygame.draw.circle(screen, (102,204,0), (100,250), 44)
+        pygame.draw.rect(screen, (255, 205, 229), player)
+        pygame.draw.rect(screen,(255,102,102),monster)
+        pygame.draw.circle(screen,(255,204,204),(216,66),16)
+
+
+        with open ("savefile.json", "w") as file:
+            gamedata["x"] = player.x
+            gamedata["y"] = player.y
+            json.dump(gamedata, file)
+    # Exit
+    pygame.quit()
+    return option
+
 
 # Examples
 def test_functions():
