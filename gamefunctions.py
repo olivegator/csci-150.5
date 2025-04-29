@@ -3,20 +3,21 @@
 #2/17/25
 
 '''
-This module has several functions for a game.
+This module has several functions for my game.
 
-There is a purchasing items function, a random monster generator function,
-a greeting function, and a function to print off a menu board with a list
+There is a purchasing items function, a fighting function,a greeting
+function, and a function to print off a menu board with a list
 of items, among others.
 '''
 
+# imports
 import random # Needed for the random monster function
 import time # Needed for text print timing
-import json
-#from typing import _P # Needed for loading files
+import json # Needed for loading files
+import csv # Needed for saving monster data
 import pygame # Needed for graphics
 import os # Needed for saving position
-
+import wanderingMonster
 
 
 # Purchasing items function
@@ -39,52 +40,6 @@ def purchase_item(itemPrice,startingMoney,quantityToPurchase=1):
         quantityToPurchase = int((startingMoney // itemPrice))
     cash = round(startingMoney - (quantityToPurchase * itemPrice),2)
     return quantityToPurchase, cash
-
-# Random Monster Function
-def new_random_monster():
-    '''
-    A function to randomly choose a monster with random stats.
-
-    It randomly chooses the index for the lists of monsters,
-    to fill out dictionary values for the returned monster.
-    Parameters:
-        None
-
-    Returns:
-        monster: a random monster with a correlated desctiption. The
-        monster will have random stats (health, power, and money) within
-        a certain range
-    '''
-    choice = random.randint(0,2)
-    names = [
-        "Mothman",
-        "Bigfoot",
-        "Loch Ness Monster"
-    ]
-    descriptions = [
-        "Part moth, part man; this frightful beast terrorizes Point \
-Pleasent, West Virginia.\nWith his red eyes and fearsome wings, \
-he is sure to send even the bravest explorer running.",
-        "With a whopping size 22 sneaker, this big fellow elusively roams \
-the forests of America. \nThey say he isn't violent... at least \
-when he's not hungry....",
-        "This Scottish lass is as old as the dinosaurs! Or, maybe she is \
-one? \nEither way, best be careful when you are fishing..."
-    ]
-    healths = [random.randrange(100,201,25), random.randrange(200,401,50),
-        random.randrange(500,701,25)]
-    powers = [random.randrange(300,401,50),random.randrange(100,201,25),
-        random.randrange(50,101, 10)]
-    moneys = [random.randrange(300,401,25),random.randrange(100,251,25),
-        random.randrange(400,551 ,50)]
-    monster = {
-        "name": names[choice],
-        "description": descriptions[choice],
-        "health": (healths[choice]),
-        "power": (powers[choice]),
-        "money": (moneys[choice])
-        }
-    return monster
 
 # Welcome
 def print_welcome(name,width=20):
@@ -194,10 +149,11 @@ def loadgame(filename = "savefile.json",):
             time.sleep(1)
             print("Game loaded!")
             return name, cash, power, health, discoballs, lavalamps, x, y
-    else:
+    else: # returns default values to player's dictionary
         time.sleep(1)
         print("No games to load!")
         return "", 0, 100, 500, 0, 0, 85, 232
+
 # Prints stats of player and monsters
 def statcheck(cash, power, health, equipped, discoballs, lavalamps):
     '''
@@ -237,50 +193,55 @@ def equipItem(equipped, discoballs, lavalamps):
         discoballs: number of discoballs
         lavalamps: number of lavalamps
     '''
+    # handle cases where things can't/shouldn't be equipped
     if equipped != "No items equipped":
         print(f"{equipped} is already equipped!")
+        return equipped, discoballs, lavalamps
     if (discoballs == 0) and (lavalamps == 0):
         print("You don't have anything to equip!")
-    else:
-        print("What would you like to equip?")
-        print(f"You have {discoballs} disco balls and {lavalamps}\
+        return equipped, discoballs, lavalamps
+
+    # equip items
+    print("What would you like to equip?")
+    print(f"You have {discoballs} disco balls and {lavalamps}\
  lava lamps.")
-        if discoballs <= 0:
-            choice = int(input( "1 - lava lamp (+50 health))"))
-            while (choice.isnumeric() == False) or (int(choice) != 1):
-                print("Invalid input, try again.")
-                choice = (input("Enter your choice: "))
-            equipped = "lava lamp"
-            lavalamps = lavalamps + 1
-            print(f"Equipped: {equipped}")
-            print("+50 health!")
-        elif lavalamps <= 0:
-            choice =  int(input("1 - disco ball (+25 power for 1\
- battle)"))
-            while (choice.isnumeric() == False) or (int(choice) != 1):
-                print("Invalid input, try again.")
-                choice = (input("Enter your choice: "))
-            equipped = "disco ball"
-            discoballs = discoballs - 1
-            print(f"Equipped: {equipped}")
-            print("+25 power for this battle!")
-        else:
-            choice = int(input("1 - disco ball (+25 power for 1 battle)\
-\n2 - lava lamp (+25 health for 1 battle)"))
-            while (choice.isnumeric() == False) or \
-((int(choice) != 1) and (int(choice)) !=2):
-                print("Invalid input, try again.")
-                choice = (input("Enter your choice: "))
-            if choice == 1:
-                equipped = "disco ball"
-                discoballs = discoballs - 1
-                print(f"Equipped: {equipped}")
-                print("+25 power for this battle!")
-            if choice == 2:
-                equipped = "lava lamp"
-                lavalamps = lavalamps - 1
-                print(f"Equipped: {equipped}")
-                print("+50 health!")
+    choices = ["1 - lava lamp (+50 health))",
+    "2 - disco ball (+25 power for 1 battle",
+    "3 - nevermind"]
+    vchoices = ["1","2","3"] # valid choices
+
+    # if player has only one type of item
+    if lavalamps <= 0:
+        del choices[0]
+        del vchoices[0]
+    if discoballs <= 0:
+        del choices[1]
+        del vchoices[1]
+
+    print("\n".join(choices))
+    choice = input("Enter your choice: ")
+
+    # invalid inputs
+    while choice not in vchoices:
+        print("Invalid input, try again.")
+        choice = input("Enter your choice: ")
+
+    # equip lava lamp
+    if choice == "1":
+        equipped = "lava lamp"
+        lavalamps -= 1
+        print(f"Equipped: {equipped} \n +50 health!")
+
+    # equip discoball
+    if choice == "2":
+        equipped = "disco ball"
+        discoballs -= 1
+        print(f"Equipped: {equipped} +25 power for this battle!")
+
+    # exit
+    if choice == "3":
+        print("Okay, back to battle!")
+
     return (equipped, discoballs, lavalamps)
 
 # The menu for fighting
@@ -455,7 +416,7 @@ def fightloop(cash,power,health,monster, equipped, discoballs, lavalamps):
     return cash, power, health, monster["health"], equipped, discoballs, lavalamps
 
 # Discovering a monster
-def findmonster(cash, power, health, equipped, discoballs, lavalamps):
+def findmonster(cash, power, health, equipped, discoballs, lavalamps, monsterdict = {}):
     '''
     A function for finding a monster to battle
 
@@ -473,27 +434,31 @@ def findmonster(cash, power, health, equipped, discoballs, lavalamps):
         power: player's power
         health: player's health
     '''
-    print("You venture into the forest in search of a monster...")
-    time.sleep(1)
-    monster = new_random_monster()
-    print(f"You found {monster["name"]}!")
+    monster = wanderingMonster.wandering_monster()
+    if monsterdict == {}:
+        monsterdict = monster.new_random_monster()
+
+    print(f"You found {monsterdict["name"]}!")
     time.sleep(2)
-    print(monster["description"])
-    statcheck(monster["money"], monster["power"], monster["health"],\
- f"{monster["name"]} has no items equipped", 0, 0)
+    print(monsterdict["description"])
     time.sleep(3)
-    choice2 = input(f"Would you like to beat {monster["name"]} \
+    print(f" {monsterdict["name"]}'s Stats:\
+        \nMoney - {monsterdict["money"]}\
+        \nPower - {monsterdict["power"]}\
+        \nHealth - {monsterdict["health"]}")
+    time.sleep(2)
+    choice2 = input(f"Would you like to fight {monsterdict["name"]} \
 in a dance battle? \n 1 - yes \n 2 - no \n enter: ")
     while choice2 != "2":
         if choice2 == "1":
-            cash, power, health, monster["health"], equipped,\
+            cash, power, health, monsterdict["health"], equipped,\
             discoballs, lavalamps = fightloop(cash, power, health,\
- monster, equipped, discoballs, lavalamps)
+ monsterdict, equipped, discoballs, lavalamps)
             break
         elif (choice2.isnumeric() == False) or (int(choice2) > 2):
             print("Invalid input, please try again.")
             time.sleep(1)
-            choice2 = input(f"Would you like to beat {monster["name"]} \
+            choice2 = input(f"Would you like to beatbeat {monsterdict["name"]} \
 in a dance battle? \n 1 - yes \n 2 - no \n enter: ")
     if choice2 == "2":
         print("Nevermind...")
@@ -560,28 +525,76 @@ def invalid(menu_func):
 
 #Pygame
 def gamewindow(gamedata):
-    winwidth = 320
-    winheight = 320
+    window = (320,320)
+    running = True
+
+    # monster variables:
+    monsterdict = {}
+    if os.path.exists("monsters.json"):
+        with open("monsters.json", "r") as file:
+            monsters = json.load(file)
+        if ((monsters[0])["defeated"]== True and
+            (monsters[1])["defeated"] == True):
+            monsterclass1 = wanderingMonster.wandering_monster()
+            monsterdict1 = monsterclass1.new_random_monster()
+            monsterclass2 = wanderingMonster.wandering_monster()
+            monsterdict2 = monsterclass2.new_random_monster()
+            monsters = [
+                monsterdict1,
+                monsterdict2
+            ]
+            with open("monsters.json", "w") as file:
+                json.dump(monsters, file)
+
+    else:
+        monsterclass1 = wanderingMonster.wandering_monster()
+        monsterdict1 = monsterclass1.new_random_monster()
+        monsterclass2 = wanderingMonster.wandering_monster()
+        monsterdict2 = monsterclass2.new_random_monster()
+        monsters = [
+            monsterdict1,
+            monsterdict2
+        ]
+        with open("monsters.json", "w") as file:
+            json.dump(monsters, file)
+
+    monsterlist = []
+    monsterdicts =  []
+    for monsterdict in monsters:
+        if monsterdict["defeated"] == False:
+            monsterclass = wanderingMonster.wandering_monster()
+            monsterclass.rect.topleft = (monsterdict["x"],
+                                        monsterdict["y"])
+            monsterlist.append(monsterclass)
+            monsterdicts.append(monsterdict)
+
+    # managing movement
+    playerturn = False
+    endplayerturn = False
+    endmonsterturn = False
+
+    # player variables
     if os.path.exists("savefile.json"):
            with open("savefile.json", "r") as file:
                gamedict = json.load(file)
-               x = gamedict["x"]
-               y = gamedict["y"]
+               playerx = gamedict["x"]
+               playery = gamedict["y"]
     else:
-        x = 85
-        y = 232
-    player = pygame.Rect(x,y,32,32)
-    town = pygame.Rect(50,200,100,100)
-    monster = pygame.Rect(200, 50, 32, 32)
-    speed = 1
+        playerx = 85
+        playery = 232
+    speed = 2
     option = 0
-    pygame.init()
-    screen = pygame.display.set_mode((winwidth, winheight))
-
     starttown = True
-    running = True
+
+    # initiate game
+    pygame.init()
+    screen = pygame.display.set_mode(window)
+    town = pygame.Rect(50,200,100,100)
+    player = pygame.Rect(playerx,playery,32,32)
+
     while running:
-        # quitting
+
+        # quitting the game
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
@@ -590,28 +603,40 @@ def gamewindow(gamedata):
         pygame.display.update()
         time.sleep(.01)
 
-        # controls
-        key = pygame.key.get_pressed()
-        if key[pygame.K_UP]:
-            player.move_ip(0, -speed)
-        elif key[pygame.K_DOWN]:
-            player.move_ip(0, speed)
-        elif key[pygame.K_LEFT]:
-            player.move_ip(-speed, 0)
-        elif key[pygame.K_RIGHT]:
-            player.move_ip(speed, 0)
-
-        # Bounderies
+        # Bounderies - player
         if player.left < 0:
             player.left = 0
         if player.top < 0:
             player.top = 0
-        if player.right > winwidth:
-            player.right = winwidth
-        if player.bottom > winheight:
-            player.bottom = winheight
+        if player.right > window[0]:
+            player.right = window[0]
+        if player.bottom > window[1]:
+            player.bottom = window[1]
 
+        # controls
+        key = pygame.key.get_pressed()
 
+        playerturn = key[pygame.K_UP] or key[pygame.K_DOWN] or\
+        key[pygame.K_LEFT] or key[pygame.K_RIGHT]
+        if playerturn == True:
+            if key[pygame.K_UP]:
+                player.move_ip(0, -speed)
+            elif key[pygame.K_DOWN]:
+                player.move_ip(0, speed)
+            elif key[pygame.K_LEFT]:
+                player.move_ip(-speed, 0)
+            elif key[pygame.K_RIGHT]:
+                player.move_ip(speed, 0)
+            # monster moves after player moves
+            endplayerturn = True
+            endmonsterturn = False
+        elif (endplayerturn == True) and (endmonsterturn == False):
+            for monster in monsterlist:
+                    monster.move()
+            endmonsterturn = True
+            endplayerturn = False
+
+        # player enters the town again
         entertown = player.colliderect(town)
         if (entertown == False) and (starttown == True):
             starttown = False
@@ -619,29 +644,39 @@ def gamewindow(gamedata):
             option = 0
             running = False
 
-        monsterfight = player.colliderect(monster)
-        if monsterfight == True:
-            player.x = monster.x - 40
-            player.y = monster.y - 40
-            option = 1
-            running = False
+        # player encounters a monster
+        for i, monster in enumerate(monsterlist):
+            if player.colliderect(monster.rect):
+                monsterdict = monsterdicts[i]
+                monsters[i]["defeated"] = True
+                with open("monsters.json", "w") as file:
+                    json.dump(monsters, file)
+                option = 1
+                running = False
+                break
 
         # Drawing
         screen.fill((0,102,51))
         pygame.draw.rect(screen, (76,153,0), town)
         pygame.draw.circle(screen, (102,204,0), (100,250), 44)
         pygame.draw.rect(screen, (255, 205, 229), player)
-        pygame.draw.rect(screen,(255,102,102),monster)
-        pygame.draw.circle(screen,(255,204,204),(216,66),16)
 
+        # Drawing - monsters
+        for i, monster in enumerate(monsterlist):
+            if not monsterdicts[i]["defeated"] ==  True:
+                pygame.draw.rect(screen,(0,102,51),monster.rect)
+                pygame.draw.circle(screen, monsterdicts[i]["color"],
+                monster.rect.center, 16)
 
+        # saving the player's position
         with open ("savefile.json", "w") as file:
             gamedata["x"] = player.x
             gamedata["y"] = player.y
             json.dump(gamedata, file)
+
     # Exit
     pygame.quit()
-    return option
+    return option, monsterdict
 
 
 # Examples
@@ -655,26 +690,27 @@ def test_functions():
     print(totalItems,moneyLeft)
 
     # random_monster function test
-    monster1 = new_random_monster()
-    print(monster1["name"])
-    print(monster1["description"])
-    print(monster1["health"])
-    print(monster1["power"])
-    print(monster1["money"])
-    monster2 = new_random_monster()
-    print(monster2["name"])
-    print(monster2["description"])
-    print(monster2["health"])
-    print(monster2["power"])
-    print(monster2["money"])
-    monster3 = new_random_monster()
-    print(monster3["name"])
-    print(monster3["description"])
-    print(monster3["health"])
-    print(monster3["power"])
-    print(monster3["money"])
-
-
+    monster1 = wanderingMonster.wandering_monster()
+    monsterdict1 = monster1.new_random_monster()
+    print(monsterdict1["name"])
+    print(monsterdict1["description"])
+    print(monsterdict1["health"])
+    print(monsterdict1["power"])
+    print(monsterdict1["money"])
+    monster2 = wanderingMonster.wandering_monster()
+    monsterdict2 = monster2.new_random_monster()
+    print(monsterdict2["name"])
+    print(monsterdict2["description"])
+    print(monsterdict2["health"])
+    print(monsterdict2["power"])
+    print(monsterdict2["money"])
+    monster3 = wanderingMonster.wandering_monster()
+    monsterdict3 = monster3.new_random_monster()
+    print(monsterdict3["name"])
+    print(monsterdict3["description"])
+    print(monsterdict3["health"])
+    print(monsterdict3["power"])
+    print(monsterdict3["money"])
 
     # print_welcome function test
     print_welcome("Olive")
