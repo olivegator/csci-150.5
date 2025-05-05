@@ -1,5 +1,6 @@
 import gamefunctions
 import time
+import graphics
 
 name = " "
 cash = 0
@@ -10,6 +11,8 @@ discoballs = 0
 lavalamps = 0
 x = 85
 y = 232
+gridx = 2
+gridy= 8
 
 #print("Would you like to start your journey anew or would you like to \
 #load an old adventure?")
@@ -27,7 +30,8 @@ y = 232
 
 
 gamedata = {"Cash": cash, "Power": power, "Health":health,
-    "Discoballs":discoballs, "Lava Lamps":lavalamps, "x":x, "y":y, "Name":name}
+    "Discoballs":discoballs, "Lava Lamps":lavalamps, "x":x, "y":y,
+    "gridx":gridx, "gridy":gridy, "Name":name}
 
 #time.sleep(1)
 #gamefunctions.print_welcome(name)
@@ -57,7 +61,7 @@ while choice != "5":
         gamefunctions.statcheck(cash,power,health,equipped,discoballs,lavalamps)
         choice = gamefunctions.menu(cash, power, health)
     elif (choice) == "4":
-        option,monsterdict = gamefunctions.gamewindow(gamedata)
+        option,monsterdict = graphics.gamewindow(gamedata)
         if option == 0:
             choice = gamefunctions.menu(cash, power, health)
         elif option == 1:

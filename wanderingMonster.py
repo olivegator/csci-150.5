@@ -1,37 +1,49 @@
 import random
 import pygame
+import graphics
 
 class wandering_monster:
 
-    def __init__(self, color = (0,0,0), x=200, y=50,
-    speed = 1):
-        self.monster = {}
-        self.x = random.randrange(20,300)
-        self.y = random.randrange(10,140)
-        self.speed = speed
-        self.rect = pygame.Rect(self.x,self.y, 32, 32)
+    def __init__(self, monster=None):
+        if monster == None:
+            monster = self.new_random_monster()
+        self.name = monster["name"]
+        self.description = monster["description"]
+        self.health = monster["health"]
+        self.power = monster["power"]
+        self.money = monster["money"]
+        self.color = monster["color"]
+        self.grid_x = monster["grid_x"]
+        self.grid_y = monster["grid_y"]
+        self.imagedir = monster.get("imagedir", None)
+
+        self.x = self.grid_x * 32
+        self.y = self.grid_y * 32
+
+        if graphics.framesloader(self.imagedir) != None:
+            self.spritef = list(graphics.framesloader(self.imagedir))
+            self.rect = pygame.Rect(self.x, self.y,
+            self.spritef[0].get_width(), self.spritef[0].get_height())
+            self.msprite = True
+            self.framenum = 1
+        else:
+            self.rect = pygame.Rect(self.x,self.y,32,32)
+            self.msprite = False
 
     def move(self):
         direction = random.choice([(-1,0),(1,0),(0,-1),(0,1)])
-        self.rect.move_ip((direction[0]*20),(direction[1]*20))
-        self.x = self.rect.x
-        self.y = self.rect.y
+
+        self.grid_x += direction[0]
+        self.grid_y += direction[1]
 
         # Bounderies
+        self.grid_x = max(0, min(9, self.grid_x))
+        self.grid_y = max(0, min(9, self.grid_y))
 
-        if self.rect.left < 0:
-            self.rect.left = 0
-            direction = (1,0)
-        if self.rect.top < 0:
-            self.rect.top = 0
-            direction = (0,1)
-        if self.rect.right > 320:
-            self.rect.right = 320
-            direction = (-1,0)
-        if self.rect.bottom > 150:
-            self.rect.bottom = 150
-            direction = (0,-1)
+        self.x = self.grid_x * 32
+        self.y = self.grid_y * 32
 
+        self.rect.topleft = (self.x, self.y)
 
     def new_random_monster(self):
         '''
@@ -70,6 +82,7 @@ class wandering_monster:
         moneys = [random.randrange(300,401,25),random.randrange(100,251,25),
             random.randrange(400,551,50)]
 
+        imagedirs = [ "mm","bf","lnm" ]
 
         def setcolor(choice):
             color = (0,0,0)
@@ -88,8 +101,32 @@ class wandering_monster:
             "power": (powers[choice]),
             "money": (moneys[choice]),
             "color": setcolor(choice),
+            "grid_x": random.randint(0, 9),
+            "grid_y": random.randint(0, 9),
+            "x": random.randrange(20, 300),
+            "y": random.randrange(10, 140),
+            "imagedir": imagedirs[choice]
+            }
+
+        return monster
+
+    def draw(self,screen):
+        if self.msprite == True:
+            self.framenum = (self.framenum + 1) % 2
+            screen.blit(self.spritef[self.framenum],self.rect)
+        else:
+            pygame.draw.rect(screen,(0,102,51),self.rect)
+            pygame.draw.circle(screen, self.color,self.rect.center, 16)
+
+    def saver(self):
+        return {
+            "name": self.name,
+            "description": self.description,
+            "health": self.health,
+            "power": self.power,
+            "money": self.money,
+            "color": self.color,
             "x": self.x,
             "y": self.y,
-            "defeated": False
-            }
-        return monster
+            "imagedir": self.imagedir
+        }
