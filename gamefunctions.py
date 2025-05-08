@@ -15,7 +15,7 @@ import random # Needed for the random monster function
 import time # Needed for text print timing
 import json # Needed for loading files
 import os # Needed for saving position
-import wanderingMonster
+import wanderingMonster # monster data
 
 
 # Purchasing items function
@@ -261,11 +261,11 @@ def fightmenu(cash, power, health, monster, equipped, discoballs,\
         monsterhealth: the monster's health after the move
         choice: player's selection in the menu
     '''
-    powervar = (power + monster["health"])/2
+    powervar = (power + monster.health)/2
     print("Your stats:")
     print(f"  Power: {power}\n Health: {health}\n Equipped: {equipped}")
-    print(f"{monster["name"]}'s stats:")
-    print(f"  Power: {monster["power"]}, Health: {monster["health"]}")
+    print(f"{monster.name}'s stats:")
+    print(f"  Power: {monster.power}, Health: {monster.health}")
 
     print(f"What is your next move?\
     \n 1 - Criss-cross ({int(powervar/4)} damange)\
@@ -295,9 +295,9 @@ def fightmenu(cash, power, health, monster, equipped, discoballs,\
     if int(choice) == 5:
         menu(cash, power, health)
     time.sleep(2)
-    monsterhealth = monster["health"] - damage
+    monster.health = monster.health - damage
     #FIXME - unsure how to resolve possibly unbound error, will solve soon
-    return monsterhealth, choice
+    return monster, choice
 
 # Function for the monster's turn
 def monstermove(power, health, monster):
@@ -312,9 +312,9 @@ def monstermove(power, health, monster):
     Returns:
         health: player's health after damage
     '''
-    powervar = monster["power"] + health
+    powervar = monster.power + health
     damage = int(powervar/random.randrange(5,8))
-    print(f"{monster["name"]} did {damage} damage with their cool moves!")
+    print(f"{monster.name} did {damage} damage with their cool moves!")
     time.sleep(2)
     health = health - damage
     return health
@@ -342,8 +342,8 @@ def monsterwin(cash, power, health, monster, equipped, discoballs,\
     print("You expertly boogie and take your winnings!")
     equipped = "No items equipped"
     time.sleep(2)
-    cash = cash + monster["money"]
-    power = power + ((monster["power"] + power)/4)
+    cash = cash + monster.money
+    power = power + ((monster.power + power)/4)
     time.sleep(1)
     statcheck(cash,power,health,equipped,discoballs,lavalamps)
     return cash, power, health
@@ -364,7 +364,7 @@ def monsterlose(cash, power, health, monster, equipped):
         equipped: items a player has equipped
     '''
     equipped = "No items equipped"
-    print(f"{monster["name"]}'s moves were too cool! You lost :(")
+    print(f"{monster.name}'s moves were too cool! You lost :(")
     print(f"Game over!")
     time.sleep(2)
     return equipped
@@ -387,13 +387,13 @@ def fightloop(cash,power,health,monster, equipped, discoballs, lavalamps):
         cash: player's cash
         power: player's power
         health: player's health
-        monster["health"]: monster's health
+        monster: monsterclass
         equipped: items a player has equipped
         discoballs: number of disco balls a player has
         lavalamps: number of lava lamps a player has
     '''
-    while (health > 0) and (monster["health"] > 0):
-        monster["health"], choice = fightmenu(cash, power, health,\
+    while (health > 0) and (monster.health > 0):
+        monster, choice = fightmenu(cash, power, health,\
  monster, equipped, discoballs, lavalamps)
         if equipped == "lava lamp":
             health = health + 50
@@ -406,15 +406,17 @@ def fightloop(cash,power,health,monster, equipped, discoballs, lavalamps):
         if (int(choice) > 4) or choice.isnumeric()== False:
             invalid(fightmenu(cash, power, health, monster, equipped,\
  discoballs, lavalamps))
-    if monster["health"] <= 0:
+    if monster.health <= 0:
+        monster.health = 0
         cash, power, health = monsterwin(cash, power, health,\
  monster, equipped, discoballs, lavalamps)
     if health <= 0:
         monsterlose(cash, power, health, monster, equipped)
-    return cash, power, health, monster["health"], equipped, discoballs, lavalamps
+    return cash, power, health, monster, equipped, discoballs, lavalamps
 
 # Discovering a monster
-def findmonster(cash, power, health, equipped, discoballs, lavalamps, monsterdict = {}):
+def findmonster(cash, power, health, equipped, discoballs,
+lavalamps, monsterdict = None):
     '''
     A function for finding a monster to battle
 
@@ -432,35 +434,47 @@ def findmonster(cash, power, health, equipped, discoballs, lavalamps, monsterdic
         power: player's power
         health: player's health
     '''
-    monster = wanderingMonster.wandering_monster()
-    if monsterdict == {}:
-        monsterdict = monster.new_random_monster()
+    monster = wanderingMonster.wandering_monster(monsterdict)
+    monsterdict = monster.saver()
 
-    print(f"You found {monsterdict["name"]}!")
+    print(f"You found {monster.name}!")
     time.sleep(2)
-    print(monsterdict["description"])
+    print(monster.description)
     time.sleep(3)
-    print(f" {monsterdict["name"]}'s Stats:\
-        \nMoney - {monsterdict["money"]}\
-        \nPower - {monsterdict["power"]}\
-        \nHealth - {monsterdict["health"]}")
+    print(f" {monster.name}'s Stats:\
+        \nMoney - {monster.name}\
+        \nPower - {monster.power}\
+        \nHealth - {monster.health}")
     time.sleep(2)
-    choice2 = input(f"Would you like to fight {monsterdict["name"]} \
+    choice2 = input(f"Would you like to fight {monster.name} \
 in a dance battle? \n 1 - yes \n 2 - no \n enter: ")
     while choice2 != "2":
         if choice2 == "1":
-            cash, power, health, monsterdict["health"], equipped,\
+            cash, power, health, monster, equipped,\
             discoballs, lavalamps = fightloop(cash, power, health,\
- monsterdict, equipped, discoballs, lavalamps)
+ monster, equipped, discoballs, lavalamps)
             break
         elif (choice2.isnumeric() == False) or (int(choice2) > 2):
             print("Invalid input, please try again.")
             time.sleep(1)
-            choice2 = input(f"Would you like to beatbeat {monsterdict["name"]} \
+            choice2 = input(f"Would you like to beatbeat {monster.name} \
 in a dance battle? \n 1 - yes \n 2 - no \n enter: ")
     if choice2 == "2":
         print("Nevermind...")
         menu(cash, power, health)
+    # saving monster info
+    if os.path.exists("monsters.json"):
+        monsterdict = monster.saver()
+        with open("monsters.json", "r") as file:
+            monsters = json.load(file)
+            for i, m in enumerate(monsters):
+                if (m["gridx"] == monster.gridx and
+                    m["gridy"] == monster.gridy):
+                        monsters[i].update(monsterdict)
+            with open("monsters.json", "w") as file:
+                json.dump(monsters, file)
+                print("monst data saved")
+
     return cash, power, health, equipped, discoballs, lavalamps
 
 # Shopping function
